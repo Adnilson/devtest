@@ -205,6 +205,18 @@ RSpec.describe Auctions::Api::Auction do
           described_class.finalize(auction.id)
         end
       end
+
+      it "fires a background job to notify the losing bidders" do
+        winner_id = SecureRandom.uuid
+        auction = prepare_auction_and_bids(winner_id)
+
+        travel_to(Time.now + 1.day + 1.minute) do
+
+          described_class.finalize(auction.id)
+
+          expect(Auctions::Jobs::NotifyLosingBidders).to have_enqueued_sidekiq_job(auction.id)
+        end
+      end
     end
 
     context "when auction is not finished yet" do
@@ -255,6 +267,57 @@ RSpec.describe Auctions::Api::Auction do
           )
           expect(auction.reload.status).to eq("open")
         end
+      end
+    end
+  end
+
+  describe ".notify_losing_bidders" do
+    def prepare_auction_and_bids(winner_id = SecureRandom.uuid)
+      auction = Auctions::Models::Auction.create(
+        name: "Leonardo da Vinci's pencil",
+        creator_id: "e155fe2c-c588-4320-8acf-a1ff0d82190b",
+        package_weight: 0.05,
+        package_size_x: 0.03,
+        package_size_y: 0.005,
+        package_size_z: 0.002,
+        finishes_at: Time.now - 1.day,
+        winner_id: winner_id,
+        status: "closed"
+      )
+      Auctions::Models::Bid.create(bidder_id: winner_id, auction_id: auction.id, amount: 75.0)
+
+      auction
+    end
+
+    context "when there is more than one bidder" do
+      it "sends the email notifications" do
+        auction = prepare_auction_and_bids
+        user1 = Users::Models::User.create(email: "finaçon@funana.cv")
+        Auctions::Models::Bid.create(bidder_id: user1.id, auction_id: auction.id, amount: 43.5)
+
+        result = described_class.notify_losing_bidders(auction.id)
+        
+        expect(result).to be_success
+        expect(result.value!).to eq("E-mails sent")
+        expect(Auctions::Jobs::LosingBidderEmail).to have_enqueued_sidekiq_job(
+          user1.email,
+          'Sorry seems to be the hardest word...',
+          { highest_bid: 75.0 }
+        )
+      end
+    end
+
+    context "when there is only one bidder" do
+      it "fails and does not send the email notifications" do
+        winner_id = SecureRandom.uuid
+        auction = prepare_auction_and_bids(winner_id)
+
+        result = described_class.notify_losing_bidders(auction.id)
+        
+        expect(result).to be_failure
+        expect(result.failure).to eq(
+          code: :no_losing_bidders
+        )
       end
     end
   end
