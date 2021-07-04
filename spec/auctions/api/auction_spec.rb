@@ -302,7 +302,7 @@ RSpec.describe Auctions::Api::Auction do
         expect(Auctions::Jobs::LosingBidderEmail).to have_enqueued_sidekiq_job(
           user1.email,
           'Sorry seems to be the hardest word...',
-          { highest_bid: 75.0 }
+          { highest_bid: 75.0, auction_id: auction.id }
         )
       end
     end

@@ -54,7 +54,7 @@ module Auctions
       end
 
       def send_emails(auction, bidders_ids)
-        variables = { highest_bid: highest_bid(auction) }
+        variables = { highest_bid: highest_bid(auction), auction_id: auction.id }
 
         emails(bidders_ids).each do |email|
           Auctions::Jobs::LosingBidderEmail.perform_async(
@@ -70,8 +70,6 @@ module Auctions
       end
 
       def emails(bidders_ids)
-        # here this could be fetched in batches without pluck
-
         Users::Models::User.find(bidders_ids).pluck(:email)
       end
     end
