@@ -22,8 +22,9 @@ module Orders
 
       def call
         order = yield fetch_order
+        user = yield fetch_user(order)
         
-        send_email(order) # yield send email and test to see if it breaks
+        send_email(order, user)
         
         Success("E-mail sent")
       end
@@ -38,9 +39,13 @@ module Orders
         order ? Success(order) : Failure({ code: :order_not_found })
       end
 
-      def send_email(order)
-        user = Users::Models::User.find(order.buyer_id)
+      def fetch_user(order)
+        user = Users::Models::User.find_by(id: order.buyer_id)
 
+        user ? Success(user) : Failure({ code: :user_not_found })
+      end
+
+      def send_email(order, user)
         variables = {
           reference_number: order.reference_number,
           total_payment: order.total_payment,

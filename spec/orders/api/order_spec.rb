@@ -61,7 +61,7 @@ RSpec.describe Orders::Api::Order do
       )
     end
 
-    context "called" do
+    context "when buyer exists" do
       it "sends an email to the winner" do
         user = Users::Models::User.create(email: "worlds@greatest.net")
         order = prepare_order(buyer_id: user.id)
@@ -78,6 +78,17 @@ RSpec.describe Orders::Api::Order do
         )
 
         described_class.notify_order_creation(order.id)
+      end
+    end
+
+    context "when buyer does not exist" do
+      it "returns a failure" do
+        order = prepare_order
+
+        result = described_class.notify_order_creation(order.id)
+
+        expect(result).to be_failure
+        expect(result.failure).to eq(code: :user_not_found)
       end
     end
   end
