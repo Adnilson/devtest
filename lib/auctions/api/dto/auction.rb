@@ -15,7 +15,7 @@ module Auctions
         attribute :package_size_y, Types::Float
         attribute :package_size_z, Types::Float
         attribute :finishes_at, Types::Time
-        attribute :status, Types::String
+        attribute :status, Status
         attribute :winner_id, Types::UUID.optional.default(nil)
       end
     end
