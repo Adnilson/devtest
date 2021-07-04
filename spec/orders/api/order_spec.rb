@@ -25,6 +25,14 @@ RSpec.describe Orders::Api::Order do
           )
         )
       end
+
+      it "fires a background job to notify the buyer" do
+        order_params = Orders::Api::DTO::OrderParams.new(prepare_order_params)
+
+        result = described_class.create(order_params)
+
+        expect(Orders::Jobs::NotifyOrderCreation).to have_enqueued_sidekiq_job(result.value!.id)
+      end
     end
 
     context "when 0 amount given" do
@@ -38,6 +46,38 @@ RSpec.describe Orders::Api::Order do
           code: :order_not_created,
           details: { total_payment: ["must be greater than 0"] }
         )
+      end
+    end
+  end
+
+  describe ".notify_order_creation" do
+    def prepare_order(buyer_id: SecureRandom.uuid)
+      Orders::Models::Order.create(
+        reference_number: "210704_0e4fbd9382c",
+        total_payment: 3260.0,
+        auction_id: "3890dcc2-c60f-4ff2-8fd8-b4da4fe9d9ac",
+        buyer_id: buyer_id,
+        status: "draft"
+      )
+    end
+
+    context "called" do
+      it "sends an email to the winner" do
+        user = Users::Models::User.create(email: "worlds@greatest.net")
+        order = prepare_order(buyer_id: user.id)
+        variables = {
+          reference_number: order.reference_number,
+          total_payment: order.total_payment,
+          auction_id: order.auction_id
+        }
+
+        expect(EmailDelivery::Api::Email).to receive(:deliver).with(
+          user.email,
+          "Con-Gra-Tu-Laaaa-tions!",
+          variables
+        )
+
+        described_class.notify_order_creation(order.id)
       end
     end
   end
