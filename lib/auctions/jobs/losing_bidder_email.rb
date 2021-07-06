@@ -6,7 +6,7 @@ module Auctions
       include Sidekiq::Worker
 
       def perform(email, subject, variables)
-        EmailDelivery::Api::Email.deliver(email, subject, variables)
+        ::EmailDelivery::Api::Email.deliver(email, subject, variables)
       end
     end
   end

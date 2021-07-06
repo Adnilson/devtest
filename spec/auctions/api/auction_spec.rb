@@ -298,7 +298,7 @@ RSpec.describe Auctions::Api::Auction do
         result = described_class.notify_losing_bidders(auction.id)
         
         expect(result).to be_success
-        expect(result.value!).to eq("E-mails sent")
+        expect(result.value!).to eq("Notifications sent!")
         expect(Auctions::Jobs::LosingBidderEmail).to have_enqueued_sidekiq_job(
           user1.email,
           'Sorry seems to be the hardest word...',

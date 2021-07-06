@@ -9,7 +9,7 @@ module Orders
     class NotifyOrderCreation
       include Dry::Monads[:result]
       include Dry::Monads::Do.for(:call)
-      include OrderDependencies[:find_user, :send_email]
+      include OrderDependencies[:fetch_user, :send_email]
 
       class << self
         def call(**kwargs)
@@ -17,15 +17,15 @@ module Orders
         end
       end
 
-      def initialize(order_id:, find_user:, send_email:)
+      def initialize(order_id:, fetch_user:, send_email:)
         @order_id = order_id
-        @find_user = find_user
+        @fetch_user = fetch_user
         @send_email = send_email
       end
 
       def call
         order = yield fetch_order
-        user = yield find_user.call(order.buyer_id)
+        user = yield fetch_user.call(order.buyer_id)
 
         send_email.call(params(order, user))
 
