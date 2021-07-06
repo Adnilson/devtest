@@ -66,6 +66,7 @@ module Orders
         package_dimension * joke["id"]
       end
 
+      # in a perfect world this would be a job
       def fetch_joke
         uri = URI "https://official-joke-api.appspot.com/random_joke"
         JSON.parse(Net::HTTP.get(uri))
