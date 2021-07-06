@@ -1,0 +1,52 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://official-joke-api.appspot.com/random_joke
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+      Host:
+      - official-joke-api.appspot.com
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Vary:
+      - Accept-Encoding
+      X-Powered-By:
+      - Express
+      Access-Control-Allow-Origin:
+      - "*"
+      Etag:
+      - W/"6a-xGu1Hgj42EcD42Uo6gfJGLe7Fig"
+      X-Cloud-Trace-Context:
+      - a68b5981e32ba9e405e68e9e07b11c41
+      Date:
+      - Tue, 06 Jul 2021 03:00:41 GMT
+      Server:
+      - Google Frontend
+      Cache-Control:
+      - private
+      Alt-Svc:
+      - h3=":443"; ma=2592000,h3-29=":443"; ma=2592000,h3-T051=":443"; ma=2592000,h3-Q050=":443";
+        ma=2592000,h3-Q046=":443"; ma=2592000,h3-Q043=":443"; ma=2592000,quic=":443";
+        ma=2592000; v="46,43"
+      Transfer-Encoding:
+      - chunked
+    body:
+      encoding: ASCII-8BIT
+      string: '{"id":11,"type":"general","setup":"What''s the best time to go to the
+        dentist?","punchline":"Tooth hurty."}'
+  recorded_at: Tue, 06 Jul 2021 03:00:41 GMT
+recorded_with: VCR 6.0.0
