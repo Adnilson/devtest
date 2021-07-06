@@ -7,6 +7,7 @@ module Orders
     class Ship
       include Dry::Monads[:result]
       include Dry::Monads::Do.for(:call)
+      include OrderDependencies[:get_address]
 
       class << self
         def call(**kwargs)
@@ -14,16 +15,15 @@ module Orders
         end
       end
 
-      def initialize(order_id:)
+      def initialize(order_id:, get_address:)
         @order_id = order_id
+        @get_address = get_address
       end
 
       def call
         order = yield fetch_order
         yield validate_complete_order(order)
-        user = yield fetch_user(order)
-        address = yield fetch_address(user)
-
+        address = yield get_address.call(order.buyer_id)
         yield ship(order, address)
 
         Success(Orders::Api::DTO::Order.new(order.attributes.symbolize_keys))
@@ -31,7 +31,7 @@ module Orders
 
       private
 
-      attr_reader :order_id
+      attr_reader :order_id, :get_address
 
       def fetch_order
         order = Orders::Models::Order.find_by(id: order_id)
@@ -50,22 +50,6 @@ module Orders
 
           Failure({ code: :order_not_shipped, details: details })
         end
-      end
-
-      def fetch_user(order)
-        user = Users::Models::User.find_by(id: order.buyer_id)
-
-        user ? Success(user) : Failure({ code: :user_not_found })
-      end
-
-      def fetch_address(user)
-        address = user.address
-
-        address ? Success(format_address(address)) : Failure({ code: :address_not_found })
-      end
-
-      def format_address(address)
-        [address.street, address.zip_code, address.city].join(', ')
       end
 
       def ship(order, address)
