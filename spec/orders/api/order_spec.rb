@@ -79,7 +79,10 @@ RSpec.describe Orders::Api::Order do
           variables
         )
 
-        described_class.notify_order_creation(order.id)
+        result = described_class.notify_order_creation(order.id)
+
+        expect(result).to be_success
+        expect(result.value!).to eq("Notification sent!")
       end
     end
 
