@@ -7,6 +7,7 @@ module Orders
     class Ship
       include Dry::Monads[:result]
       include Dry::Monads::Do.for(:call)
+      include OrderDependencies[:get_address]
 
       class << self
         def call(**kwargs)
@@ -14,21 +15,23 @@ module Orders
         end
       end
 
-      def initialize(order_id:)
+      def initialize(order_id:, get_address:)
         @order_id = order_id
+        @get_address = get_address
       end
 
       def call
         order = yield fetch_order
         yield validate_complete_order(order)
-        yield ship(order)
+        address = yield get_address.call(order.buyer_id)
+        yield ship(order, address)
 
         Success(Orders::Api::DTO::Order.new(order.attributes.symbolize_keys))
       end
 
       private
 
-      attr_reader :order_id
+      attr_reader :order_id, :get_address
 
       def fetch_order
         order = Orders::Models::Order.find_by(id: order_id)
@@ -49,7 +52,8 @@ module Orders
         end
       end
 
-      def ship(order)
+      def ship(order, address)
+        order.shipping_address = address
         order.status = "shipped"
         order.save
 

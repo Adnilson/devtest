@@ -22,7 +22,8 @@ RSpec.describe Orders::Api::Order do
             reference_number: kind_of(String),
             payment_method: nil,
             shipping_method: nil,
-            shipping_costs: 0.0
+            shipping_costs: 0.0,
+            shipping_address: nil
           )
         )
       end
@@ -78,7 +79,10 @@ RSpec.describe Orders::Api::Order do
           variables
         )
 
-        described_class.notify_order_creation(order.id)
+        result = described_class.notify_order_creation(order.id)
+
+        expect(result).to be_success
+        expect(result.value!).to eq("Notification sent!")
       end
     end
 
@@ -278,26 +282,78 @@ RSpec.describe Orders::Api::Order do
 
   describe ".ship" do
     context "when order has shipping_method and payment_method set" do
-      it "ships the order" do
-        order = Orders::Models::Order.create(
-          prepare_order_params.merge(
-            status: "draft",
-            reference_number: "abc",
-            shipping_method: "ground",
-            payment_method: "gold"
+      context "when user exists" do
+        it "ships the order" do
+          user = Users::Models::User.create(email: "sidu.moose@wala.in")
+          user.create_address(
+            street: "Stepney Alley 2",
+            zip_code: "E1, E14",
+            city: "London"
           )
-        )
-
-        result = described_class.ship(order.id)
-
-        expect(result).to be_success
-        expect(result.value!.to_h).to match(
-          order.attributes.symbolize_keys
-            .except(:created_at, :updated_at)
-            .merge(
-              status: "shipped"
+          order = Orders::Models::Order.create(
+            prepare_order_params.merge(
+              status: "draft",
+              reference_number: "abc",
+              shipping_method: "ground",
+              payment_method: "gold",
+              buyer_id: user.id
             )
-        )
+          )
+
+          result = described_class.ship(order.id)
+
+          expect(result).to be_success
+          expect(result.value!.to_h).to match(
+            order.attributes.symbolize_keys
+              .except(:created_at, :updated_at)
+              .merge(
+                status: "shipped",
+                shipping_address: "Stepney Alley 2, E1, E14, London"
+              )
+          )
+        end
+
+        context "when user does not have address" do
+          it "returns a failure" do
+            user = Users::Models::User.create(email: "sidu.moose@wala.in")
+            order = Orders::Models::Order.create(
+              prepare_order_params.merge(
+                status: "draft",
+                reference_number: "abc",
+                shipping_method: "ground",
+                payment_method: "gold",
+                buyer_id: user.id
+              )
+            )
+
+            result = described_class.ship(order.id)
+
+            expect(result).to be_failure
+            expect(result.failure).to eq(
+              code: :address_not_found
+            )
+          end
+        end
+      end
+
+      context "when user does not exist" do
+        it "ships the order" do
+          order = Orders::Models::Order.create(
+            prepare_order_params.merge(
+              status: "draft",
+              reference_number: "abc",
+              shipping_method: "ground",
+              payment_method: "gold"
+            )
+          )
+
+          result = described_class.ship(order.id)
+
+          expect(result).to be_failure
+          expect(result.failure).to eq(
+            code: :user_not_found
+          )
+        end
       end
     end
 
@@ -343,12 +399,19 @@ RSpec.describe Orders::Api::Order do
 
     context "when some invalid data present on the order" do
       it "returns a failure with info about the error" do
+        user = Users::Models::User.create(email: "sidu.moose@wala.in")
+        user.create_address(
+          street: "Stepney Alley 2",
+          zip_code: "E1, E14",
+          city: "London"
+        )
         order = Orders::Models::Order.create(
           prepare_order_params.merge(
             status: "draft",
             reference_number: "abc",
             shipping_method: "AirForce One",
-            payment_method: "gold"
+            payment_method: "gold",
+            buyer_id: user.id
           )
         )
 

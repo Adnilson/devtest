@@ -12,7 +12,7 @@ module Orders
         end
 
         # @param order_id [Integer] Id of the Order to notify
-        # @return [Dry::Monads::Result<Success, Failure>] "E-mail sent" in case of success,
+        # @return [Dry::Monads::Result<Success, Failure>] "Notification sent!" String in case of success,
         # or a Failure object
         def notify_order_creation(order_id)
           ::Orders::Actions::NotifyOrderCreation.call(order_id: order_id)

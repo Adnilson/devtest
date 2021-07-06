@@ -9,6 +9,7 @@ module Orders
     class NotifyOrderCreation
       include Dry::Monads[:result]
       include Dry::Monads::Do.for(:call)
+      include OrderDependencies[:find_user, :send_email]
 
       class << self
         def call(**kwargs)
@@ -16,17 +17,19 @@ module Orders
         end
       end
 
-      def initialize(order_id:)
+      def initialize(order_id:, find_user:, send_email:)
         @order_id = order_id
+        @find_user = find_user
+        @send_email = send_email
       end
 
       def call
         order = yield fetch_order
-        user = yield fetch_user(order)
-        
-        send_email(order, user)
-        
-        Success("E-mail sent")
+        user = yield find_user.call(order.buyer_id)
+
+        send_email.call(params(order, user))
+
+        Success("Notification sent!")
       end
 
       private
@@ -39,24 +42,16 @@ module Orders
         order ? Success(order) : Failure({ code: :order_not_found })
       end
 
-      def fetch_user(order)
-        user = Users::Models::User.find_by(id: order.buyer_id)
-
-        user ? Success(user) : Failure({ code: :user_not_found })
-      end
-
-      def send_email(order, user)
-        variables = {
-          reference_number: order.reference_number,
-          total_payment: order.total_payment,
-          auction_id: order.auction_id
-        }
-
-        ::EmailDelivery::Api::Email.deliver(
+      def params(order, user)
+        [
           user.email,
           EMAIL_SUBJECT,
-          variables
-        )
+          {
+            reference_number: order.reference_number,
+            total_payment: order.total_payment,
+            auction_id: order.auction_id
+          }
+        ]
       end
     end
   end
