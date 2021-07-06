@@ -2,10 +2,10 @@
 
 module Users
   module Models
-    class User < ActiveRecord::Base
+    class Address < ActiveRecord::Base
       include Shared::Concerns::Uuid
 
-      has_one :address
+      belongs_to :user
     end
   end
 end

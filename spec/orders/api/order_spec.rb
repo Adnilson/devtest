@@ -22,7 +22,8 @@ RSpec.describe Orders::Api::Order do
             reference_number: kind_of(String),
             payment_method: nil,
             shipping_method: nil,
-            shipping_costs: 0.0
+            shipping_costs: 0.0,
+            shipping_address: nil
           )
         )
       end
