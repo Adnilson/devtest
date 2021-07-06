@@ -16,6 +16,7 @@ module Orders
         attribute :payment_method, Types::String.optional.default(nil)
         attribute :status, Status
         attribute :shipping_costs, Types::Float
+        attribute :shipping_address, Types::String.optional.default(nil)
       end
     end
   end

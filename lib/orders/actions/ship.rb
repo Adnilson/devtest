@@ -21,7 +21,10 @@ module Orders
       def call
         order = yield fetch_order
         yield validate_complete_order(order)
-        yield ship(order)
+        user = yield fetch_user(order)
+        address = yield fetch_address(user)
+
+        yield ship(order, address)
 
         Success(Orders::Api::DTO::Order.new(order.attributes.symbolize_keys))
       end
@@ -49,7 +52,24 @@ module Orders
         end
       end
 
-      def ship(order)
+      def fetch_user(order)
+        user = Users::Models::User.find_by(id: order.buyer_id)
+
+        user ? Success(user) : Failure({ code: :user_not_found })
+      end
+
+      def fetch_address(user)
+        address = user.address
+
+        address ? Success(format_address(address)) : Failure({ code: :address_not_found })
+      end
+
+      def format_address(address)
+        [address.street, address.zip_code, address.city].join(', ')
+      end
+
+      def ship(order, address)
+        order.shipping_address = address
         order.status = "shipped"
         order.save
 
