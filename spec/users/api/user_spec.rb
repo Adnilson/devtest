@@ -20,4 +20,65 @@ RSpec.describe Users::Api::User do
       end
     end
   end
+
+  describe ".create_address" do
+    context "when the right params are passed" do
+      it "creates the address" do
+        user = Users::Models::User.create(email: "django@jazz.fr")
+        address_params = Users::Api::DTO::AddressParams.new(
+          street: "Stepney Alley 2",
+          zip_code: "E1, E14",
+          city: "London",
+          user_id: user.id
+        )
+
+        result = described_class.create_address(address_params)
+
+        expect(result).to be_success
+        expect(result.value!.to_h).to match(
+          address_params.to_h.merge(
+            id: kind_of(String)
+          )
+        )
+      end
+
+      context "when user already has an address" do
+        it "returns a failure" do
+          user = Users::Models::User.create(email: "django@jazz.fr")
+          user.create_address(street: "A", zip_code: "B", city: "C")
+          address_params = Users::Api::DTO::AddressParams.new(
+            street: "Stepney Alley 2",
+            zip_code: "E1, E14",
+            city: "London",
+            user_id: user.id
+          )
+
+          result = described_class.create_address(address_params)
+
+          expect(result).to be_failure
+          expect(result.failure).to eq(
+            code: :address_already_created
+          )
+        end
+      end
+    end
+
+    context "when user does not exist" do
+      it "returns a failure" do
+        address_params = Users::Api::DTO::AddressParams.new(
+          street: "Stepney Alley 2",
+          zip_code: "E1, E14",
+          city: "London",
+          user_id: "f458b10c-99e1-42ec-abda-77d0b9917936"
+        )
+
+        result = described_class.create_address(address_params)
+
+        expect(result).to be_failure
+        expect(result.failure).to eq(
+          code: :user_not_found
+        )
+      end
+    end
+  end
 end

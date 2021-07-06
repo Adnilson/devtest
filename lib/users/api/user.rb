@@ -10,6 +10,13 @@ module Users
         def get_by_id(id)
           ::Users::Actions::GetById.call(user_id: id)
         end
+
+        # @param address_params [Users::API::DTO::AddressParams] Params for a new address
+        # @return [Dry::Monads::Result<Users::API::DTO::Address, Failure>] Address as DTO in case of success,
+        # or a Failure object
+        def create_address(address_params)
+          ::Users::Actions::CreateAddress.call(params: address_params)
+        end
       end
     end
   end
