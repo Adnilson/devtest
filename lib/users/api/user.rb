@@ -24,6 +24,13 @@ module Users
         def get_address(id)
           ::Users::Actions::GetAddress.call(user_id: id)
         end
+
+        # @param id [Array] Ids of the users to get their email
+        # @return [Dry::Monads::Result<Array, Failure>] Array of email strings in case of success,
+        # or a Failure object
+        def get_emails(ids)
+          ::Users::Actions::GetEmails.call(users_ids: ids)
+        end
       end
     end
   end

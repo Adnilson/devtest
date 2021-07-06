@@ -9,6 +9,7 @@ module Auctions
     class NotifyLosingBidders
       include Dry::Monads[:result]
       include Dry::Monads::Do.for(:call)
+      include AuctionDependencies[:fetch_emails]
 
       class << self
         def call(**kwargs)
@@ -16,17 +17,19 @@ module Auctions
         end
       end
 
-      def initialize(auction_id:)
+      def initialize(auction_id:, fetch_emails:)
         @auction_id = auction_id
+        @fetch_emails = fetch_emails
       end
 
       def call
         auction = yield fetch_auction
         bidders_ids = yield fetch_bidder_ids(auction)
+        emails = yield fetch_emails.call(bidders_ids)
         
-        send_emails(auction, bidders_ids)
+        send_emails(auction, emails)
         
-        Success("E-mails sent")
+        Success("Notifications sent!")
       end
 
       private
@@ -53,10 +56,10 @@ module Auctions
         ids - [auction.winner_id]
       end
 
-      def send_emails(auction, bidders_ids)
+      def send_emails(auction, emails)
         variables = { highest_bid: highest_bid(auction), auction_id: auction.id }
 
-        emails(bidders_ids).each do |email|
+        emails.each do |email|
           Auctions::Jobs::LosingBidderEmail.perform_async(
             email,
             EMAIL_SUBJECT,
@@ -67,10 +70,6 @@ module Auctions
 
       def highest_bid(auction)
         auction.bids.where("amount = (:max)", max: auction.bids.select("max(amount)")).first.amount
-      end
-
-      def emails(bidders_ids)
-        Users::Models::User.find(bidders_ids).pluck(:email)
       end
     end
   end
