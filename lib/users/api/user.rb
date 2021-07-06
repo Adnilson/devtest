@@ -17,6 +17,13 @@ module Users
         def create_address(address_params)
           ::Users::Actions::CreateAddress.call(params: address_params)
         end
+
+        # @param id [Integer] Id of the user to get its address
+        # @return [Dry::Monads::Result<String, Failure>] Address string in case of success,
+        # or a Failure object
+        def get_address(id)
+          ::Users::Actions::GetAddress.call(user_id: id)
+        end
       end
     end
   end

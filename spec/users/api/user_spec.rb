@@ -81,4 +81,49 @@ RSpec.describe Users::Api::User do
       end
     end
   end
+
+  describe ".get_address" do
+    context "when user exists" do
+      it "gets the address" do
+        user = Users::Models::User.create(email: "django@jazz.fr")
+        address_params = {
+          street: "Stepney Alley 2",
+          zip_code: "E1, E14",
+          city: "London"
+        }
+        user.create_address(address_params)
+
+        result = described_class.get_address(user.id)
+
+        expect(result).to be_success
+        expect(result.value!).to eq("Stepney Alley 2, E1, E14, London")
+      end
+
+      context "when the address does not exist" do
+        it "returns a failure" do
+          user = Users::Models::User.create(email: "django@jazz.fr")
+
+          result = described_class.get_address(user.id)
+
+          expect(result).to be_failure
+          expect(result.failure).to eq(
+            code: :address_not_found
+          )
+        end
+      end
+    end
+
+    context "when user does not exist" do
+      it "returns a failure" do
+        user_id = "620192c0-9eee-4821-bd9b-bbde3094d26c"
+
+        result = described_class.get_address(user_id)
+
+        expect(result).to be_failure
+        expect(result.failure).to eq(
+          code: :user_not_found
+        )
+      end
+    end
+  end
 end
