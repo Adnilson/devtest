@@ -21,7 +21,8 @@ RSpec.describe Orders::Api::Order do
             status: "draft",
             reference_number: kind_of(String),
             payment_method: nil,
-            shipping_method: nil
+            shipping_method: nil,
+            shipping_costs: 0.0
           )
         )
       end
@@ -94,19 +95,81 @@ RSpec.describe Orders::Api::Order do
   end
 
   describe ".update_shipping_method" do
+    def prepare_auction
+      Auctions::Models::Auction.create(
+        name: "Leonardo da Vinci's pencil",
+        creator_id: "3090dcc2-c60f-4ff2-8fd8-b4da4fe9d9ac",
+        description: "An artifact from renaissance, used by the genius inventor and designer",
+        package_weight: 0.05,
+        package_size_x: 0.03,
+        package_size_y: 0.005,
+        package_size_z: 0.002,
+        finishes_at: Time.now - 5.days,
+        status: "closed"
+      )
+    end
+
     context "when value given" do
       it "updates the order" do
-        order = Orders::Models::Order.create(prepare_order_params.merge(status: "draft", reference_number: "abc"))
+        auction = prepare_auction
+        order = Orders::Models::Order.create(
+          prepare_order_params.merge(
+            status: "draft",
+            reference_number: "abc",
+            auction_id: auction.id
+          )
+        )
 
-        result = described_class.update_shipping_method(order.id, "Fedex Overnight")
+        result = described_class.update_shipping_method(order.id, "air")
 
         expect(result).to be_success
         expect(result.value!.to_h).to match(
           order.attributes.symbolize_keys
             .except(:created_at, :updated_at)
             .merge(
-              shipping_method: "Fedex Overnight"
+              shipping_method: "air",
+              shipping_costs: 2.0
             )
+        )
+      end
+
+      context "when ground shipping_method is chosen" do
+        it "calculates based on traffic" do
+          VCR.use_cassette("ground_shipping") do
+            auction = prepare_auction
+            order = Orders::Models::Order.create(
+              prepare_order_params.merge(
+                status: "draft",
+                reference_number: "abc",
+                auction_id: auction.id
+              )
+            )
+
+            result = described_class.update_shipping_method(order.id, "ground")
+
+            expect(result).to be_success
+            expect(result.value!.to_h).to match(
+              order.attributes.symbolize_keys
+                .except(:created_at, :updated_at)
+                .merge(
+                  shipping_method: "ground",
+                  shipping_costs: 3.2999999999999997e-06
+                )
+            )
+          end
+        end
+      end
+    end
+
+    context "when auction does not exist" do
+      it "returns a failure" do
+        order = Orders::Models::Order.create(prepare_order_params.merge(status: "draft", reference_number: "abc"))
+
+        result = described_class.update_shipping_method(order.id, "air")
+
+        expect(result).to be_failure
+        expect(result.failure).to eq(
+          code: :auction_not_found
         )
       end
     end
@@ -220,7 +283,7 @@ RSpec.describe Orders::Api::Order do
           prepare_order_params.merge(
             status: "draft",
             reference_number: "abc",
-            shipping_method: "AirForce One",
+            shipping_method: "ground",
             payment_method: "gold"
           )
         )
@@ -264,7 +327,7 @@ RSpec.describe Orders::Api::Order do
           prepare_order_params.merge(
             status: "draft",
             reference_number: "abc",
-            shipping_method: "AirForce One"
+            shipping_method: "air"
           )
         )
 
