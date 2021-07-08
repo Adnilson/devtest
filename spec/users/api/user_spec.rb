@@ -61,23 +61,23 @@ RSpec.describe Users::Api::User do
           )
         end
       end
-    end
 
-    context "when user does not exist" do
-      it "returns a failure" do
-        address_params = Users::Api::DTO::AddressParams.new(
-          street: "Stepney Alley 2",
-          zip_code: "E1, E14",
-          city: "London",
-          user_id: "f458b10c-99e1-42ec-abda-77d0b9917936"
-        )
+      context "when user does not exist" do
+        it "returns a failure" do
+          address_params = Users::Api::DTO::AddressParams.new(
+            street: "Stepney Alley 2",
+            zip_code: "E1, E14",
+            city: "London",
+            user_id: "f458b10c-99e1-42ec-abda-77d0b9917936"
+          )
 
-        result = described_class.create_address(address_params)
+          result = described_class.create_address(address_params)
 
-        expect(result).to be_failure
-        expect(result.failure).to eq(
-          code: :user_not_found
-        )
+          expect(result).to be_failure
+          expect(result.failure).to eq(
+            code: :user_not_found
+          )
+        end
       end
     end
   end
@@ -122,6 +122,34 @@ RSpec.describe Users::Api::User do
         expect(result).to be_failure
         expect(result.failure).to eq(
           code: :user_not_found
+        )
+      end
+    end
+  end
+
+  describe ".get_emails" do
+    context "when users exist" do
+      it "should return emails" do
+        user1 = Users::Models::User.create(email: "brychu@iol.pl")
+        user2 = Users::Models::User.create(email: "samuel@malaga.es")
+
+        result = described_class.get_emails([user1.id, user2.id])
+
+        expect(result).to be_success
+        expect(result.value!).to eq(["brychu@iol.pl", "samuel@malaga.es"])
+      end
+    end
+
+    context "when users do not exist" do
+      it "should return a failure" do
+        user_id1 = "792ae8b3-db87-42be-8555-a0e0fda2b884"
+        user_id2 = "cc835bfe-0fea-49ca-bb38-f7148f2dd5bf"
+
+        result = described_class.get_emails([user_id1, user_id2])
+
+        expect(result).to be_failure
+        expect(result.failure).to eq(
+          code: :users_not_found
         )
       end
     end

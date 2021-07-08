@@ -42,7 +42,7 @@ module Users
       end
 
       def create_address_string(address)
-        [address.street, address.zip_code, address.city].join(', ')
+        [address.street, address.zip_code, address.city].join(", ")
       end
     end
   end
