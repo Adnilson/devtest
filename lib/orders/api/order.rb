@@ -11,6 +11,13 @@ module Orders
           ::Orders::Actions::Create.call(params: order_params)
         end
 
+        # @param order_id [Integer] Id of the Order to notify
+        # @return [Dry::Monads::Result<Success, Failure>] "Notification sent!" String in case of success,
+        # or a Failure object
+        def notify_order_creation(order_id)
+          ::Orders::Actions::NotifyOrderCreation.call(order_id: order_id)
+        end
+
         # @param order_id [Integer] Id of the order to update
         # @param value [String] Shipping method
         # @return [Dry::Monads::Result<Orders::Api::DTO::Order, Failure>] Order as DTO in case of success,

@@ -23,6 +23,7 @@ module Orders
       def call
         order = yield fetch_order
         yield validate_order_status(order)
+        self.shipping_costs = yield calculate_shipping_costs(order) if shipping_method_present?
         yield update(order)
 
         Success(Orders::Api::DTO::Order.new(order.attributes.symbolize_keys))
@@ -31,6 +32,7 @@ module Orders
       private
 
       attr_reader :order_id, :shipping_method, :payment_method
+      attr_accessor :shipping_costs
 
       def fetch_order
         order = Orders::Models::Order.find_by(id: order_id)
@@ -46,6 +48,14 @@ module Orders
         end
       end
 
+      def shipping_method_present?
+        !(shipping_method.nil? || shipping_method.empty?)
+      end
+
+      def calculate_shipping_costs(order)
+        Orders::Actions::CalculateShippingCosts.call(auction_id: order.auction_id, shipping_method: shipping_method)
+      end
+
       def update(order)
         order.update(update_params)
 
@@ -59,7 +69,8 @@ module Orders
       def update_params
         {
           shipping_method: shipping_method,
-          payment_method: payment_method
+          payment_method: payment_method,
+          shipping_costs: shipping_costs
         }.compact
       end
     end

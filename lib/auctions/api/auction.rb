@@ -24,6 +24,13 @@ module Auctions
         def finalize(auction_id)
           ::Auctions::Actions::Finalize.call(auction_id: auction_id)
         end
+
+        # @param auction_id [Integer] Id of the auction to notify losing bidders
+        # @return [Dry::Monads::Result<Success, Failure>] message
+        # in case of success, or a Failure object
+        def notify_losing_bidders(auction_id)
+          ::Auctions::Actions::NotifyLosingBidders.call(auction_id: auction_id)
+        end
       end
     end
   end

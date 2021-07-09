@@ -28,6 +28,8 @@ module Auctions
           yield create_order.call(order_params(auction))
         end
 
+        notify_losing_bidders(auction)
+
         Success(Auctions::Api::DTO::Auction.new(auction.attributes.symbolize_keys))
       end
 
@@ -67,6 +69,10 @@ module Auctions
 
       def highest_bidder(auction)
         auction.bids.where("amount = (:max)", max: auction.bids.select("max(amount)")).first.bidder_id
+      end
+
+      def notify_losing_bidders(auction)
+        Auctions::Jobs::NotifyLosingBidders.perform_async(auction.id)
       end
     end
   end

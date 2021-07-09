@@ -1,5 +1,5 @@
 default: &default
-  adapter: sqlite3
+  adapter: postgresql
   database: gat_devtest_development
   pool: 5
   timeout: 5000
