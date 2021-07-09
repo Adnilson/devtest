@@ -1,14 +1,13 @@
 # frozen_string_literal: true
 
 require "dry/monads/do"
-require "net/http"
-require "json"
 
 module Orders
   module Actions
     class CalculateShippingCosts
       include Dry::Monads[:result]
       include Dry::Monads::Do.for(:call)
+      include OrderDependencies[:fetch_joke]
 
       class << self
         def call(**kwargs)
@@ -16,9 +15,10 @@ module Orders
         end
       end
 
-      def initialize(auction_id:, shipping_method:)
+      def initialize(auction_id:, shipping_method:, fetch_joke:)
         @auction_id = auction_id
         @shipping_method = shipping_method
+        @fetch_joke = fetch_joke
       end
 
       def call
@@ -30,7 +30,7 @@ module Orders
 
       private
 
-      attr_reader :auction_id, :shipping_method
+      attr_reader :auction_id, :shipping_method, :fetch_joke
 
       def fetch_auction
         auction = Auctions::Models::Auction.find_by(id: auction_id)
@@ -50,8 +50,7 @@ module Orders
       end
 
       def calculate_air_shipping(auction)
-        package_weight = auction.package_weight.ceil
-        package_weight * 2
+        auction.package_weight.ceil * 2
       end
 
       def calculate_ground_shipping(auction)
@@ -61,15 +60,9 @@ module Orders
           auction.package_size_z
         ].reduce(:*)
 
-        joke = fetch_joke
+        joke = fetch_joke.call
 
-        package_dimension * joke["id"]
-      end
-
-      # in a perfect world this would be a job
-      def fetch_joke
-        uri = URI "https://official-joke-api.appspot.com/random_joke"
-        JSON.parse(Net::HTTP.get(uri))
+        package_dimension * joke.id
       end
     end
   end
