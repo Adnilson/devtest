@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gem "activerecord", "~> 6.1", ">= 6.1.3.2"
+gem "activerecord", "~> 6.1"
 gem "dry-auto_inject", "~> 0.8.0"
 gem "dry-container", "~> 0.8.0"
 gem "dry-struct", "~> 1.4.0"
